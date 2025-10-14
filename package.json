@@ -1,0 +1,69 @@
+{
+  "name": "jiracsserver",
+  "version": "2.0.0",
+  "description": "Next.js + TypeScript Jira Customer Service Agent Workflow System using LangGraph",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "start:prod": "NODE_ENV=production next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit",
+    "server": "ts-node src/server.ts",
+    "server:dev": "ts-node --transpile-only src/server.ts",
+    "server:prod": "pnpm build && node dist/index.js",
+    "test": "ts-node src/tests/index.ts",
+    "test:mock": "TEST_MODE=true ts-node src/tests/index.ts",
+    "test:api": "TEST_MODE=true ts-node src/tests/api-test.ts"
+  },
+  "keywords": [
+    "jira",
+    "langgraph",
+    "ai",
+    "customer-service",
+    "nextjs",
+    "typescript"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@langchain/core": "^0.3.78",
+    "@langchain/langgraph": "^0.4.9",
+    "@langchain/openai": "^0.6.15",
+    "axios": "^1.7.9",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.0.1",
+    "helmet": "^8.0.0",
+    "joi": "^18.0.1",
+    "morgan": "^1.10.0",
+    "next": "^15.1.4",
+    "openai": "^6.3.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/morgan": "^1.9.9",
+    "@types/node": "^24.7.2",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@10.16.1",
+  "pnpm": {
+    "overrides": {
+      "node-domexception": "npm:domexception@^4.0.0",
+      "formdata-node": "^6.0.3"
+    }
+  }
+}
