@@ -1,65 +1,67 @@
+好的，這份是您提供的 `JiraCSServer 部署指南` 的繁體中文版本：
+
 # JiraCSServer 部署指南
 
-## 📋 目录
+## 📋 目錄
 
-- [前置要求](#前置要求)
-- [本地开发](#本地开发)
-- [Docker 部署](#docker-部署)
-- [生产环境部署](#生产环境部署)
-- [故障排查](#故障排查)
+  - [前置要求](https://www.google.com/search?q=%23%E5%89%8D%E7%BD%AE%E8%A6%81%E6%B1%82)
+  - [本地開發](https://www.google.com/search?q=%23%E6%9C%AC%E5%9C%B0%E9%96%8B%E7%99%BC)
+  - [Docker 部署](https://www.google.com/search?q=%23docker-%E9%83%A8%E7%BD%B2)
+  - [生產環境部署](https://www.google.com/search?q=%23%E7%94%9F%E7%94%A2%E7%92%B0%E5%A2%83%E9%83%A8%E7%BD%B2)
+  - [故障排除](https://www.google.com/search?q=%23%E6%95%85%E9%9A%9C%E6%8E%92%E9%99%A4)
 
 ## 前置要求
 
-### 软件要求
+### 軟體要求
 
-- Docker >= 20.10
-- Docker Compose >= 2.0
-- Node.js >= 20 (本地开发)
-- pnpm >= 9.0 (本地开发)
+  - Docker \>= 20.10
+  - Docker Compose \>= 2.0
+  - Node.js \>= 20 (本地開發)
+  - pnpm \>= 9.0 (本地開發)
 
-### 环境变量
+### 環境變數
 
-确保 `.env` 文件已正确配置：
+確保 `.env` 檔案已正確設定：
 
 ```bash
-# OpenAI 配置
+# OpenAI 設定
 OPENAI_API_KEY=your_api_key
 OPENAI_MODEL=gemini-flash-latest
 OPENAI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
 
-# Jira 配置
+# Jira 設定
 JIRA_BASE_URL=https://jirastage.deltaww.com
 JIRA_AUTH_TOKEN=YWx2aXMuYWRtaW46UGFyYTk0Nzg=
 
-# 应用配置
+# 應用程式設定
 NODE_ENV=production
 TEST_MODE=false
 PORT=3000
 ```
 
-## 本地开发
+## 本地開發
 
-### 1. 安装依赖
+### 1\. 安裝依賴
 
 ```bash
 pnpm install
 ```
 
-### 2. 启动开发服务器
+### 2\. 啟動開發伺服器
 
 ```bash
 pnpm dev
 ```
 
-服务器将在 `http://localhost:3000` 启动
+伺服器將在 `http://localhost:3000` 啟動
 
-### 3. 测试 API
+### 3\. 測試 API
 
 ```bash
-# 健康检查
+# 健康檢查
 curl http://localhost:3000/health
 
-# 测试处理端点（不发送到 Jira）
+# 測試處理端點（不傳送到 Jira）
 curl -X POST http://localhost:3000/api/jira/process_test \
   -H "Content-Type: application/json" \
   -d @test-data.json
@@ -67,95 +69,106 @@ curl -X POST http://localhost:3000/api/jira/process_test \
 
 ## Docker 部署
 
-### 快速启动
+### 快速啟動
 
 ```bash
-# 构建并启动所有服务
+# 建置並啟動所有服務
 docker-compose up -d
 
-# 查看日志
+# 查看日誌
 docker-compose logs -f
 
-# 停止服务
+# 停止服務
 docker-compose down
+
+# 匯出 Image 打包壓縮檔
+docker save -o jiracsserver-images.tar jiracsserver-jira-cs-server:latest nginx:alpine
 ```
 
-### 服务访问
+### 打包文件部署
+```bash
+# 加載
+docker load -i jiracsserver-images.tar
 
-启动后，服务可通过以下端口访问：
+# 啓動
+docker-compose up -d 
+```
+### 服務存取
 
-- **端口 80**: `http://your-server-ip/api/jira/process`
-- **端口 8080**: `http://your-server-ip:8080/api/jira/process`
-- **端口 3000**: 直接访问 Next.js 应用（仅用于调试）
+啟動後，服務可透過以下連接埠存取：
 
-### 架构说明
+  - **連接埠 80**: `http://your-server-ip/api/jira/process`
+  - **連接埠 8080**: `http://your-server-ip:8080/api/jira/process`
+  - **連接埠 3000**: 直接存取 Next.js 應用程式（僅用於偵錯）
+
+### 架構說明
 
 ```
 ┌─────────────┐
-│   客户端    │
+│   用戶端    │
 └──────┬──────┘
        │
        ▼
 ┌─────────────────────────────────────┐
-│   Nginx (端口 80/8080)              │
+│   Nginx (連接埠 80/8080)             │
 │   - 反向代理                         │
-│   - 负载均衡                         │
-│   - 日志记录                         │
+│   - 負載平衡                         │
+│   - 日誌記錄                         │
 └──────┬──────────────────────────────┘
        │
        ▼
 ┌─────────────────────────────────────┐
-│   JiraCSServer (端口 3000)          │
-│   - Next.js 应用                     │
-│   - API 路由处理                     │
-│   - LangGraph 工作流                 │
+│   JiraCSServer (連接埠 3000)         │
+│   - Next.js 應用程式                 │
+│   - API 路由處理                     │
+│   - LangGraph 工作流程               │
 └─────────────────────────────────────┘
 ```
 
-## 生产环境部署
+## 生產環境部署
 
-### 方法 1: 使用 Docker Compose（推荐）
+### 方法 1: 使用 Docker Compose（推薦）
 
 ```bash
-# 1. 克隆代码到服务器
+# 1. 複製程式碼到伺服器
 git clone <your-repo> /opt/jira-cs-server
 cd /opt/jira-cs-server
 
-# 2. 配置环境变量
+# 2. 設定環境變數
 cp .env.example .env
-vim .env  # 编辑配置
+vim .env  # 編輯設定
 
-# 3. 构建并启动
+# 3. 建置並啟動
 docker-compose up -d --build
 
-# 4. 查看服务状态
+# 4. 查看服務狀態
 docker-compose ps
 
-# 5. 查看日志
+# 5. 查看日誌
 docker-compose logs -f jira-cs-server
 docker-compose logs -f nginx
 ```
 
-### 方法 2: 使用现有 Nginx
+### 方法 2: 使用現有 Nginx
 
-如果您的服务器已有 Nginx，可以只运行应用容器：
+如果您的伺服器已有 Nginx，可以只執行應用程式容器：
 
 ```bash
-# 1. 只启动应用服务
+# 1. 只啟動應用程式服務
 docker-compose up -d jira-cs-server
 
-# 2. 配置现有 Nginx
-# 将 nginx/conf.d/jira-cs-server.conf 的内容添加到您的 Nginx 配置
-# 注意修改 upstream 为: localhost:3000
+# 2. 設定現有 Nginx
+# 將 nginx/conf.d/jira-cs-server.conf 的內容新增至您的 Nginx 設定
+# 注意修改 upstream 為: localhost:3000
 ```
 
-### 方法 3: 独立 Docker 运行
+### 方法 3: 獨立 Docker 執行
 
 ```bash
-# 构建镜像
+# 建置映像檔
 docker build -t jira-cs-server:latest .
 
-# 运行容器
+# 執行容器
 docker run -d \
   --name jira-cs-server \
   --restart unless-stopped \
@@ -163,222 +176,231 @@ docker run -d \
   --env-file .env \
   jira-cs-server:latest
 
-# 配置 Nginx 反向代理到 localhost:3000
+# 設定 Nginx 反向代理到 localhost:3000
 ```
 
-## 服务管理
+## 服務管理
 
-### 查看服务状态
+### 查看服務狀態
 
 ```bash
 # Docker Compose
 docker-compose ps
 
-# 健康检查
+# 健康檢查
 curl http://localhost/health
 curl http://localhost:8080/health
 ```
 
-### 查看日志
+### 查看日誌
 
 ```bash
-# 应用日志
+# 應用程式日誌
 docker-compose logs -f jira-cs-server
 
-# Nginx 日志
+# Nginx 日誌
 docker-compose logs -f nginx
 
-# 或直接查看日志文件
+# 或直接查看日誌檔案
 tail -f nginx/logs/jira-cs-access.log
 tail -f nginx/logs/jira-cs-error.log
 ```
 
-### 重启服务
+### 重啟服務
 
 ```bash
-# 重启所有服务
+# 重啟所有服務
 docker-compose restart
 
-# 只重启应用
+# 只重啟應用程式
 docker-compose restart jira-cs-server
 
-# 只重启 Nginx
+# 只重啟 Nginx
 docker-compose restart nginx
 ```
 
 ### 更新部署
 
 ```bash
-# 1. 拉取最新代码
+# 1. 拉取最新程式碼
 git pull
 
-# 2. 重新构建并启动
+# 2. 重新建置並啟動
 docker-compose up -d --build
 
-# 3. 清理旧镜像（可选）
+# 3. 清理舊映像檔（可選）
 docker image prune -f
 ```
 
-### 备份与恢复
+### 備份與還原
 
 ```bash
-# 备份配置
+# 備份設定
 tar -czf backup-$(date +%Y%m%d).tar.gz .env nginx/
 
-# 恢复配置
+# 還原設定
 tar -xzf backup-20250114.tar.gz
 ```
 
-## 监控与维护
+## 監控與維護
 
-### 资源监控
+### 資源監控
 
 ```bash
-# 查看容器资源使用
+# 查看容器資源使用情況
 docker stats
 
-# 查看磁盘使用
+# 查看磁碟使用情況
 docker system df
 ```
 
-### 日志管理
+### 日誌管理
 
-日志文件会自动轮换（配置在 docker-compose.yml）：
-- 最大文件大小: 10MB
-- 保留文件数: 3
+日誌檔案會自動輪替（設定在 docker-compose.yml）：
 
-手动清理日志：
+  - 最大檔案大小: 10MB
+  - 保留檔案數: 3
+
+手動清理日誌：
+
 ```bash
-# 清理 Docker 日志
+# 清理 Docker 日誌
 docker-compose down
 rm -rf nginx/logs/*
 docker-compose up -d
 ```
 
-### 性能优化
+### 效能優化
 
-1. **调整 Nginx worker 数量**
-   ```nginx
-   # nginx/nginx.conf
-   worker_processes auto;  # 自动匹配 CPU 核心数
-   ```
+1.  **調整 Nginx worker 數量**
 
-2. **调整 Node.js 内存限制**
-   ```yaml
-   # docker-compose.yml
-   environment:
-     - NODE_OPTIONS=--max-old-space-size=2048
-   ```
+    ```nginx
+    # nginx/nginx.conf
+    worker_processes auto;  # 自動匹配 CPU 核心數
+    ```
 
-## 故障排查
+2.  **調整 Node.js 記憶體限制**
 
-### 问题 1: 容器无法启动
+    ```yaml
+    # docker-compose.yml
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=2048
+    ```
+
+## 故障排除
+
+### 問題 1: 容器無法啟動
 
 ```bash
-# 查看详细日志
+# 查看詳細日誌
 docker-compose logs jira-cs-server
 
-# 检查环境变量
+# 檢查環境變數
 docker-compose exec jira-cs-server env
 
-# 重新构建
+# 重新建置
 docker-compose down
 docker-compose up -d --build --force-recreate
 ```
 
-### 问题 2: 无法连接到 API
+### 問題 2: 無法連線到 API
 
 ```bash
-# 检查端口是否开放
+# 檢查連接埠是否開放
 netstat -tuln | grep -E '80|8080|3000'
 
-# 检查防火墙
+# 檢查防火牆
 sudo ufw status
 sudo firewall-cmd --list-all
 
-# 测试容器内部连接
+# 測試容器內部連線
 docker-compose exec nginx curl http://jira-cs-server:3000/health
 ```
 
-### 问题 3: Nginx 502 Bad Gateway
+### 問題 3: Nginx 502 Bad Gateway
 
 ```bash
-# 检查应用是否正常运行
+# 檢查應用程式是否正常運作
 docker-compose ps
 curl http://localhost:3000/health
 
-# 检查 Nginx 配置
+# 檢查 Nginx 設定
 docker-compose exec nginx nginx -t
 
-# 重新加载 Nginx
+# 重新載入 Nginx
 docker-compose exec nginx nginx -s reload
 ```
 
-### 问题 4: 内存不足
+### 問題 4: 記憶體不足
 
 ```bash
-# 查看内存使用
+# 查看記憶體使用情況
 docker stats
 
-# 增加 swap 空间（临时解决）
+# 增加 swap 空間（臨時解決方案）
 sudo fallocate -l 2G /swapfile
 sudo chmod 600 /swapfile
 sudo mkswap /swapfile
 sudo swapon /swapfile
 ```
 
-### 问题 5: 环境变量未生效
+### 問題 5: 環境變數未生效
 
 ```bash
-# 检查环境变量
+# 檢查環境變數
 docker-compose exec jira-cs-server printenv | grep -E 'OPENAI|JIRA'
 
-# 重新启动（确保 .env 文件正确）
+# 重新啟動（確保 .env 檔案正確）
 docker-compose down
 docker-compose up -d
 ```
 
-## API 端点
+## API 端點
 
-| 端点 | 方法 | 描述 |
+| 端點 | 方法 | 描述 |
 |------|------|------|
-| `/api/jira/process` | POST | 处理工单并发送评论到 Jira |
-| `/api/jira/process_test` | POST | 处理工单但不发送评论（测试） |
-| `/api/jira/batch` | POST | 批量处理工单 |
-| `/api/jira/health` | GET | 系统健康检查 |
-| `/api/jira/info` | GET | 系统信息 |
-| `/health` | GET | 基本健康检查 |
+| `/api/jira/process` | POST | 處理工單並傳送評論到 Jira |
+| `/api/jira/process_test` | POST | 處理工單但不傳送評論（測試） |
+| `/api/jira/batch` | POST | 批次處理工單 |
+| `/api/jira/health` | GET | 系統健康檢查 |
+| `/api/jira/info` | GET | 系統資訊 |
+| `/health` | GET | 基本健康檢查 |
 
-## 安全建议
+## 安全建議
 
-1. **使用 HTTPS**
-   - 在生产环境中配置 SSL/TLS
-   - 可使用 Let's Encrypt 免费证书
+1.  **使用 HTTPS**
 
-2. **限制访问**
-   ```nginx
-   # 在 nginx/conf.d/jira-cs-server.conf 中添加
-   allow 10.0.0.0/8;  # 允许内网
-   deny all;           # 拒绝其他
-   ```
+      - 在生產環境中設定 SSL/TLS
+      - 可使用 Let's Encrypt 免費證書
 
-3. **环境变量安全**
-   - 不要提交 `.env` 文件到 Git
-   - 使用 Docker secrets 或环境变量管理工具
+2.  **限制存取**
 
-4. **定期更新**
-   ```bash
-   # 更新基础镜像
-   docker pull node:20-alpine
-   docker pull nginx:alpine
-   
-   # 重新构建
-   docker-compose build --no-cache
-   ```
+    ```nginx
+    # 在 nginx/conf.d/jira-cs-server.conf 中新增
+    allow 10.0.0.0/8;   # 允許內網
+    deny all;           # 拒絕其他
+    ```
 
-## 支持
+3.  **環境變數安全**
 
-如有问题，请查看：
-- 应用日志: `docker-compose logs jira-cs-server`
-- Nginx 日志: `nginx/logs/`
-- 健康检查: `curl http://localhost/health`
+      - 不要提交 `.env` 檔案到 Git
+      - 使用 Docker secrets 或環境變數管理工具
+
+4.  **定期更新**
+
+    ```bash
+    # 更新基礎映像檔
+    docker pull node:20-alpine
+    docker pull nginx:alpine
+
+    # 重新建置
+    docker-compose build --no-cache
+    ```
+
+## 支援
+
+如有問題，請查看：
+
+  - 應用程式日誌: `docker-compose logs jira-cs-server`
+  - Nginx 日誌: `nginx/logs/`
+  - 健康檢查: `curl http://localhost/health`

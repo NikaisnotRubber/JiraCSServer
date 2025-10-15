@@ -5,18 +5,18 @@
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
-    "dev": "next dev",
+    "dev": "NODE_OPTIONS='--no-deprecation' next dev",
     "build": "next build",
-    "start": "next start",
-    "start:prod": "NODE_ENV=production next start",
+    "start": "NODE_OPTIONS='--no-deprecation' next start",
+    "start:prod": "NODE_ENV=production NODE_OPTIONS='--no-deprecation' next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
-    "server": "ts-node src/server.ts",
-    "server:dev": "ts-node --transpile-only src/server.ts",
-    "server:prod": "pnpm build && node dist/index.js",
-    "test": "ts-node src/tests/index.ts",
-    "test:mock": "TEST_MODE=true ts-node src/tests/index.ts",
-    "test:api": "TEST_MODE=true ts-node src/tests/api-test.ts"
+    "server": "NODE_OPTIONS='--require ./suppress-dep-warnings.js' ts-node src/server.ts",
+    "server:dev": "NODE_OPTIONS='--require ./suppress-dep-warnings.js' ts-node --transpile-only src/server.ts",
+    "server:prod": "pnpm build && NODE_OPTIONS='--require ./suppress-dep-warnings.js' node dist/index.js",
+    "test": "NODE_OPTIONS='--require ./suppress-dep-warnings.js' ts-node src/tests/index.ts",
+    "test:mock": "TEST_MODE=true NODE_OPTIONS='--require ./suppress-dep-warnings.js' ts-node src/tests/index.ts",
+    "test:api": "TEST_MODE=true NODE_OPTIONS='--require ./suppress-dep-warnings.js' ts-node src/tests/api-test.ts"
   },
   "keywords": [
     "jira",
