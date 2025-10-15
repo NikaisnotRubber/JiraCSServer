@@ -12,13 +12,20 @@ import { MockQualityEvaluatorAgent } from '../agents/mock-quality-evaluator';
 import { JiraApiClient } from '../clients/jira-client';
 import { config } from '../utils/config';
 
-const useMockAgents = config.app.testMode || !process.env.OPENAI_API_KEY;
+// Import V2 agents
+import { ProblemClassificationAgentV2 } from '../agents/classifier-v2';
+import { LoginHandlerAgentV2 } from '../agents/login-handler-v2';
+import { ComplexHandlerAgentV2 } from '../agents/complex-handler-v2';
+import { QualityEvaluatorAgentV2 } from '../agents/quality-evaluator-v2';
 
-let classificationAgent: ProblemClassificationAgent | MockProblemClassificationAgent;
-let loginHandler: LoginHandlerAgent | MockLoginHandlerAgent;
-let complexHandler: ComplexHandlerAgent | MockComplexHandlerAgent;
+const useMockAgents = config.app.testMode || !process.env.OPENAI_API_KEY;
+const useV2Agents = process.env.USE_V2_AGENTS === 'true' || true; // Default to V2
+
+let classificationAgent: ProblemClassificationAgent | ProblemClassificationAgentV2 | MockProblemClassificationAgent;
+let loginHandler: LoginHandlerAgent | LoginHandlerAgentV2 | MockLoginHandlerAgent;
+let complexHandler: ComplexHandlerAgent | ComplexHandlerAgentV2 | MockComplexHandlerAgent;
 let generalHandler: GeneralHandlerAgent | MockGeneralHandlerAgent;
-let qualityEvaluator: QualityEvaluatorAgent | MockQualityEvaluatorAgent;
+let qualityEvaluator: QualityEvaluatorAgent | QualityEvaluatorAgentV2 | MockQualityEvaluatorAgent;
 
 if (useMockAgents) {
   console.log('🔧 [MOCK MODE] Initializing workflow with mock agents (no external API calls)');
@@ -27,8 +34,15 @@ if (useMockAgents) {
   complexHandler = new MockComplexHandlerAgent();
   generalHandler = new MockGeneralHandlerAgent();
   qualityEvaluator = new MockQualityEvaluatorAgent();
+} else if (useV2Agents) {
+  console.log('🔧 [V2 MODE] Initializing workflow with V2 agents (Enhanced Prompt Engineering)');
+  classificationAgent = new ProblemClassificationAgentV2();
+  loginHandler = new LoginHandlerAgentV2();
+  complexHandler = new ComplexHandlerAgentV2();
+  generalHandler = new GeneralHandlerAgent(); // V2 not yet implemented, use V1
+  qualityEvaluator = new QualityEvaluatorAgentV2();
 } else {
-  console.log('🔧 Initializing workflow with real agents (OpenAI API enabled)');
+  console.log('🔧 [V1 MODE] Initializing workflow with V1 agents (OpenAI API enabled)');
   classificationAgent = new ProblemClassificationAgent();
   loginHandler = new LoginHandlerAgent();
   complexHandler = new ComplexHandlerAgent();

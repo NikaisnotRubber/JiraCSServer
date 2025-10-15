@@ -45,6 +45,9 @@ export class QualityEvaluatorAgentV2 {
         throw new Error('No response to evaluate');
       }
 
+      // Log pre-evaluation context
+      this.logEvaluationContext(state);
+
       const assessment = await this.performQualityAssessment(state);
       const processingTime = Date.now() - startTime;
 
@@ -60,6 +63,7 @@ export class QualityEvaluatorAgentV2 {
           original_request_summary: state.original_request.forms.Summary,
           classification: state.classification?.category,
           retry_count: state.retry_count,
+          response_full_length: state.current_response.length,
         },
         output: {
           confidence: assessment.score / 100,
@@ -135,7 +139,7 @@ export class QualityEvaluatorAgentV2 {
   ): Promise<QualityAssessment> {
     console.log('🔍 [QualityEvaluatorV2] Preparing evaluation input...');
 
-    // Prepare input for template
+    // Prepare comprehensive input for template
     const input = {
       original_issue: {
         summary: state.original_request.forms.Summary,
@@ -143,16 +147,24 @@ export class QualityEvaluatorAgentV2 {
       },
       response_to_evaluate: state.current_response,
       issue_category: state.classification?.category || 'Unknown',
+      classification_confidence: state.classification?.confidence || 0,
+      classification_reasoning: state.classification?.reasoning || 'N/A',
       retry_context: state.retry_count > 0 ? {
         retry_count: state.retry_count,
         previous_feedback: state.quality_feedback,
+        previous_score: state.quality_score,
       } : undefined,
     };
 
     console.log('📄 [QualityEvaluatorV2] Input prepared:');
     console.log(`   Issue Category: ${input.issue_category}`);
+    console.log(`   Classification Confidence: ${(input.classification_confidence * 100).toFixed(1)}%`);
     console.log(`   Response Length: ${state.current_response?.length || 0} chars`);
     console.log(`   Is Retry: ${state.retry_count > 0}`);
+    if (state.retry_count > 0) {
+      console.log(`   Previous Score: ${state.quality_score || 'N/A'}`);
+      console.log(`   Previous Feedback Preview: ${state.quality_feedback?.substring(0, 100) || 'N/A'}...`);
+    }
 
     // Build prompts with context
     const builtPrompt = PromptBuilder.build(
@@ -181,6 +193,9 @@ export class QualityEvaluatorAgentV2 {
     console.log('📊 [QualityEvaluatorV2] Prompt built successfully');
     console.log(`   Estimated tokens: ${builtPrompt.metadata.estimatedTokens}`);
 
+    // Log full prompts for debugging (truncated if too long)
+    this.logPromptDetails(builtPrompt);
+
     console.log('🌐 [QualityEvaluatorV2] Calling OpenAI API for quality assessment...');
 
     const response = await this.openai.chat.completions.create({
@@ -196,7 +211,7 @@ export class QualityEvaluatorAgentV2 {
           schema: QualityAssessmentSchema,
         },
       },
-      temperature: 0.1,  // Low temperature for consistent evaluation
+      temperature: 0.2,  // Slightly higher for more nuanced evaluation
     });
 
     console.log('✅ [QualityEvaluatorV2] OpenAI API call successful');
@@ -206,10 +221,13 @@ export class QualityEvaluatorAgentV2 {
       throw new Error('No quality assessment received from OpenAI');
     }
 
+    console.log('📝 [QualityEvaluatorV2] Raw assessment result (first 500 chars):');
+    console.log(result.substring(0, 500) + (result.length > 500 ? '...' : ''));
+
     const assessment = JSON.parse(result) as QualityAssessment;
 
-    // Validate assessment
-    this.validateAssessment(assessment);
+    // Validate and adjust assessment
+    this.validateAndAdjustAssessment(assessment, state);
 
     return assessment;
   }
@@ -235,7 +253,8 @@ export class QualityEvaluatorAgentV2 {
     return 'improve_response';
   }
 
-  private validateAssessment(assessment: QualityAssessment): void {
+  private validateAndAdjustAssessment(assessment: QualityAssessment, state: typeof WorkflowStateAnnotation.State): void {
+    // Clamp scores to valid range
     if (assessment.score < 0 || assessment.score > 100) {
       console.warn(`⚠️  [QualityEvaluatorV2] Invalid score: ${assessment.score}, clamping to 0-100`);
       assessment.score = Math.max(0, Math.min(100, assessment.score));
@@ -250,10 +269,30 @@ export class QualityEvaluatorAgentV2 {
       }
     }
 
-    // Ensure requires_improvement matches score
-    if (assessment.score < 75 && !assessment.requires_improvement) {
-      console.warn('⚠️  [QualityEvaluatorV2] Score < 75 but requires_improvement=false, correcting');
-      assessment.requires_improvement = true;
+    // Adaptive quality threshold based on retry count
+    // First attempt: strict (75), subsequent attempts: more lenient
+    const qualityThreshold = state.retry_count === 0 ? 75 : Math.max(65, 75 - (state.retry_count * 5));
+
+    console.log(`📏 [QualityEvaluatorV2] Quality threshold for this evaluation: ${qualityThreshold}`);
+
+    // Adjust requires_improvement based on adaptive threshold
+    if (assessment.score < qualityThreshold) {
+      if (!assessment.requires_improvement) {
+        console.warn(`⚠️  [QualityEvaluatorV2] Score ${assessment.score} < threshold ${qualityThreshold} but requires_improvement=false, correcting`);
+        assessment.requires_improvement = true;
+      }
+    } else {
+      // Score meets threshold
+      if (assessment.requires_improvement && assessment.score >= qualityThreshold) {
+        console.warn(`⚠️  [QualityEvaluatorV2] Score ${assessment.score} >= threshold ${qualityThreshold} but requires_improvement=true, correcting`);
+        assessment.requires_improvement = false;
+      }
+    }
+
+    // Special case: if we're at or near max retries and score is reasonable (>60), accept it
+    if (state.retry_count >= state.max_retries - 1 && assessment.score >= 60) {
+      console.warn(`⚠️  [QualityEvaluatorV2] Near max retries (${state.retry_count}/${state.max_retries}), accepting score ${assessment.score}`);
+      assessment.requires_improvement = false;
     }
   }
 
@@ -268,6 +307,7 @@ export class QualityEvaluatorAgentV2 {
       console.log(`\n   Classification:`);
       console.log(`     Category: ${state.classification.category}`);
       console.log(`     Confidence: ${(state.classification.confidence * 100).toFixed(1)}%`);
+      console.log(`     Reasoning: ${state.classification.reasoning}`);
     }
 
     if (state.current_response) {
@@ -283,10 +323,46 @@ export class QualityEvaluatorAgentV2 {
 
     if (state.processing_history && state.processing_history.length > 0) {
       console.log(`\n   Processing History: ${state.processing_history.length} steps`);
-      state.processing_history.forEach((step, idx) => {
+      state.processing_history.forEach((step: ProcessingStep, idx: number) => {
         console.log(`     ${idx + 1}. ${step.agent_name} (${step.step_name}) - ${step.success ? '✓' : '✗'}`);
       });
     }
+  }
+
+  private logEvaluationContext(state: typeof WorkflowStateAnnotation.State): void {
+    console.log('\n🔍 [QualityEvaluatorV2] Evaluation Context:');
+    console.log(`   Original Issue Summary: ${state.original_request.forms.Summary}`);
+    console.log(`   Original Issue Content Length: ${state.original_request.forms.Comment.Content.length} chars`);
+    console.log(`   Generated Response Length: ${state.current_response?.length || 0} chars`);
+
+    if (state.retry_count > 0) {
+      console.log(`\n   ⚠️  This is a RETRY evaluation (attempt #${state.retry_count + 1})`);
+      console.log(`   Previous Score: ${state.quality_score || 'N/A'}`);
+      if (state.quality_assessment) {
+        console.log(`   Previous Criteria Scores:`);
+        console.log(`     - Relevance: ${state.quality_assessment.criteria.relevance}`);
+        console.log(`     - Completeness: ${state.quality_assessment.criteria.completeness}`);
+        console.log(`     - Tone: ${state.quality_assessment.criteria.tone}`);
+        console.log(`     - Actionability: ${state.quality_assessment.criteria.actionability}`);
+        console.log(`     - Accuracy: ${state.quality_assessment.criteria.accuracy}`);
+      }
+    }
+  }
+
+  private logPromptDetails(builtPrompt: any): void {
+    console.log('\n📝 [QualityEvaluatorV2] Prompt Details:');
+    console.log(`   System Prompt Length: ${builtPrompt.systemPrompt.length} chars`);
+    console.log(`   User Prompt Length: ${builtPrompt.userPrompt.length} chars`);
+    console.log(`   Total Estimated Tokens: ${builtPrompt.metadata.estimatedTokens}`);
+    console.log(`   Is Retry: ${builtPrompt.metadata.isRetry}`);
+
+    // Log first 300 chars of system prompt
+    console.log('\n   System Prompt Preview:');
+    console.log('   ' + builtPrompt.systemPrompt.substring(0, 300).replace(/\n/g, '\n   ') + '...');
+
+    // Log first 400 chars of user prompt
+    console.log('\n   User Prompt Preview:');
+    console.log('   ' + builtPrompt.userPrompt.substring(0, 400).replace(/\n/g, '\n   ') + '...');
   }
 
   private logAssessment(assessment: QualityAssessment, state: typeof WorkflowStateAnnotation.State): void {

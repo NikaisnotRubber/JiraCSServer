@@ -88,7 +88,25 @@ When score is below 75, provide specific, actionable suggestions such as:
     sections.push(`\n**Generated Response to Evaluate:**`);
     sections.push(input.response_to_evaluate);
 
-    sections.push(`\n**Issue Category**: ${input.issue_category || 'Unknown'}`);
+    sections.push(`\n**Context Information:**`);
+    sections.push(`- Issue Category: ${input.issue_category || 'Unknown'}`);
+    sections.push(`- Classification Confidence: ${((input.classification_confidence || 0) * 100).toFixed(1)}%`);
+    sections.push(`- Classification Reasoning: ${input.classification_reasoning || 'N/A'}`);
+
+    // Add retry context if this is a retry
+    if (input.retry_context && input.retry_context.retry_count > 0) {
+      sections.push(`\n**🔄 RETRY CONTEXT (Attempt #${input.retry_context.retry_count + 1}):**`);
+      sections.push(`This response has been regenerated based on quality feedback.`);
+      sections.push(`- Previous Score: ${input.retry_context.previous_score || 'N/A'}`);
+      if (input.retry_context.previous_feedback) {
+        sections.push(`- Previous Feedback: ${input.retry_context.previous_feedback}`);
+      }
+      sections.push(`\n**IMPORTANT**: When evaluating retry attempts:`);
+      sections.push(`- Consider if improvements were made based on previous feedback`);
+      sections.push(`- Be objective - don't automatically lower scores for retries`);
+      sections.push(`- Evaluate the current response on its own merits`);
+      sections.push(`- If the response adequately addresses the issue, score it fairly`);
+    }
 
     sections.push(`\n**Provide your assessment with:**
 1. **Overall Score** (0-100)
@@ -102,7 +120,12 @@ When score is below 75, provide specific, actionable suggestions such as:
 4. **Requires Improvement** (boolean) - true if score < 75
 5. **Improvement Suggestions** - specific, actionable recommendations (if score < 75)`);
 
-    sections.push(`\n**Be thorough and objective in your evaluation.**`);
+    sections.push(`\n**Evaluation Guidelines:**`);
+    sections.push(`- Be objective and fair in your assessment`);
+    sections.push(`- Focus on whether the response helps the customer solve their problem`);
+    sections.push(`- A response doesn't need to be perfect to score 75+`);
+    sections.push(`- Consider the complexity of the issue when evaluating completeness`);
+    sections.push(`- Professional, clear responses that address the core issue should score well`);
 
     return sections.join('\n');
   }
