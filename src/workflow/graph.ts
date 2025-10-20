@@ -11,6 +11,7 @@ import { MockLoginHandlerAgent, MockComplexHandlerAgent, MockGeneralHandlerAgent
 import { MockQualityEvaluatorAgent } from '../agents/mock-quality-evaluator';
 import { JiraApiClient } from '../clients/jira-client';
 import { config } from '../utils/config';
+import { createCheckpointer } from './checkpoint.js';
 
 // Import V2 agents
 import { ProblemClassificationAgentV2 } from '../agents/classifier-v2';
@@ -264,4 +265,36 @@ const workflow = new StateGraph(WorkflowStateAnnotation)
   .addEdge('log_response', 'send_comment_to_jira')
   .addEdge('send_comment_to_jira', END);
 
+/**
+ * Initialize and compile the workflow graph with LangMem checkpointing
+ *
+ * LangMem provides native context persistence using PostgreSQL.
+ * The checkpointer automatically saves workflow state after each node execution.
+ * Use thread_id (Project ID) when invoking to maintain conversation continuity.
+ */
+let compiledApp: ReturnType<typeof workflow.compile> | null = null;
+
+export async function initializeWorkflow() {
+  if (compiledApp) {
+    return compiledApp;
+  }
+
+  try {
+    console.log('🔧 Initializing workflow with LangMem checkpointing...');
+    const checkpointer = await createCheckpointer();
+    compiledApp = workflow.compile({ checkpointer });
+    console.log('✅ Workflow initialized with checkpoint persistence');
+    return compiledApp;
+  } catch (error) {
+    console.warn('⚠️ Failed to initialize checkpointer, falling back to non-persistent mode:', error);
+    compiledApp = workflow.compile();
+    return compiledApp;
+  }
+}
+
+/**
+ * Get compiled workflow app (legacy export for backward compatibility)
+ *
+ * @deprecated Use initializeWorkflow() instead to ensure checkpointer is initialized
+ */
 export const app = workflow.compile();

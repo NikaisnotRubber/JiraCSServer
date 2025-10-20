@@ -1,0 +1,60 @@
+# Claude Code 項目配置
+
+# 項目規範文件
+project_rules: CLAUDE.md
+
+# WSL 強制要求
+wsl_required: true
+wsl_path: /mnt/c/Users/ALVIS.MC.TSAO/worKspace/JiraCSServer
+
+# 禁止在 Windows 環境執行的命令
+forbidden_commands:
+  - npm
+  - pnpm
+  - node
+  - git
+  - docker
+  - psql
+  - pg_dump
+
+# 必須在 WSL 中執行的提示
+wsl_reminder: |
+  ⚠️ 重要提醒:
+  所有開發命令必須在 WSL 中執行!
+
+  請先運行: wsl
+  然後導航到: cd /mnt/c/Users/ALVIS.MC.TSAO/worKspace/JiraCSServer
+
+# 快速參考
+quick_commands:
+  setup: "./setup-wsl.sh"
+  install: "npm install"
+  dev: "npm run dev"
+  test: "npm run test:mock"
+  db_init: "npm run db:init"
+  db_stats: "npm run db:stats"
+  db_maintain: "npm run db:maintain"
+
+# 核心文檔
+documentation:
+  - CLAUDE.md
+  - CONTEXT_STORAGE.md
+  - QUICKSTART_CONTEXT.md
+  - README.md
+  - API.md
+
+# 項目類型
+project_type: nextjs-typescript-langgraph-postgresql
+
+# Node.js 版本
+node_version: ">=18.0.0"
+
+# 包管理器
+package_manager: npm  # 或 pnpm
+
+# 環境要求
+environment:
+  - WSL 2
+  - PostgreSQL 14+
+  - Docker (可選)
+  - OpenAI API Key

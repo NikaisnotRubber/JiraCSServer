@@ -1,6 +1,35 @@
 version: '3.8'
 
 services:
+  # PostgreSQL 資料庫服務 (上下文存儲)
+  postgres:
+    image: postgres:16-alpine
+    container_name: jira-cs-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=${DATABASE_NAME:-jira_cs}
+      - POSTGRES_USER=${DATABASE_USER:-postgres}
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD:-postgres}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF8
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
+    networks:
+      - jira-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER:-postgres} -d ${DATABASE_NAME:-jira_cs}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   # Next.js 应用服务
   jira-cs-server:
     build:
@@ -14,15 +43,39 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - HOSTNAME=0.0.0.0
-      # 从 .env 文件读取环境变量
+      # OpenAI API
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o}
       - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      # Jira API
       - JIRA_BASE_URL=${JIRA_BASE_URL:-https://jirastage.deltaww.com}
       - JIRA_AUTH_TOKEN=${JIRA_AUTH_TOKEN}
+      # Database (上下文存儲)
+      - DATABASE_URL=postgresql://${DATABASE_USER:-postgres}:${DATABASE_PASSWORD:-postgres}@postgres:5432/${DATABASE_NAME:-jira_cs}
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_NAME=${DATABASE_NAME:-jira_cs}
+      - DATABASE_USER=${DATABASE_USER:-postgres}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD:-postgres}
+      - DATABASE_SSL=false
+      - DATABASE_MAX_CONNECTIONS=${DATABASE_MAX_CONNECTIONS:-10}
+      - DATABASE_IDLE_TIMEOUT=${DATABASE_IDLE_TIMEOUT:-30000}
+      - DATABASE_CONNECTION_TIMEOUT=${DATABASE_CONNECTION_TIMEOUT:-5000}
+      # Context Compression
+      - CONTEXT_COMPRESSION_TURN_THRESHOLD=${CONTEXT_COMPRESSION_TURN_THRESHOLD:-5}
+      - CONTEXT_COMPRESSION_TOKEN_THRESHOLD=${CONTEXT_COMPRESSION_TOKEN_THRESHOLD:-10000}
+      - CONTEXT_KEEP_RECENT_TURNS=${CONTEXT_KEEP_RECENT_TURNS:-3}
+      - CONTEXT_COMPRESSION_MODEL=${CONTEXT_COMPRESSION_MODEL:-gpt-4o-mini}
+      - CONTEXT_MAX_COMPRESSED_TOKENS=${CONTEXT_MAX_COMPRESSED_TOKENS:-3000}
+      # Application
       - TEST_MODE=${TEST_MODE:-false}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - USE_V2_AGENTS=${USE_V2_AGENTS:-true}
     env_file:
       - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - jira-network
     healthcheck:
@@ -63,3 +116,7 @@ services:
 networks:
   jira-network:
     driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local

@@ -43,6 +43,7 @@ JiraCSServer v2.0 是一個基於 AI 的 Jira 客戶服務自動化系統，使�
 - ✅ **測試模式** - 內建 Mock 模式用於開發測試
 - ✅ **健康檢查** - 多層級健康檢查機制
 - ✅ **測試工具** - Python 和 Bash 測試腳本
+- ✅ **LangMem 整合** - LangGraph 原生記憶體管理,自動維護對話上下文
 
 ## 核心功能
 
@@ -94,7 +95,34 @@ graph TD
 - 質量評估和自動改進機制
 - 完整的錯誤處理和重試邏輯
 
-### 3. API 端點
+### 3. LangMem 對話上下文管理
+
+系統使用 **LangGraph 的原生 LangMem** 進行自動化對話上下文持久化：
+
+**核心特性：**
+- ✅ **自動狀態保存** - 每個節點執行後自動保存工作流狀態
+- ✅ **Thread-based 隔離** - 使用 Project ID 作為 thread_id，同一專案共享上下文
+- ✅ **零配置記憶** - 無需手動保存/加載上下文，LangGraph 自動處理
+- ✅ **PostgreSQL 後端** - 使用 checkpoint 表存儲對話歷史
+- ✅ **版本控制** - 每個 checkpoint 有唯一 ID，支持時間旅行調試
+
+**工作原理：**
+```typescript
+// 第一次互動
+processRequest({ "Project ID": "JCSC-1", ... })
+// → thread_id: "project:JCSC-1"
+// → LangMem 自動保存狀態
+
+// 後續追問（相同 Project ID）
+processRequest({ "Project ID": "JCSC-1", ... })
+// → 相同 thread_id
+// → LangMem 自動加載之前的上下文
+// → 實現對話連續性
+```
+
+詳細文檔請參閱 [LANGMEM_GUIDE.md](./LANGMEM_GUIDE.md)
+
+### 4. API 端點
 
 #### 核心端點
 
@@ -223,27 +251,67 @@ JiraCSServer/
 
 ## 快速開始
 
+### ⚠️ 重要:必須在 WSL 環境中開發
+
+**本項目的所有開發操作必須在 WSL (Windows Subsystem for Linux) 中進行!**
+
+請勿在 Windows PowerShell 或 CMD 中運行任何 npm/git 命令。詳細說明請參閱 [CLAUDE.md](./CLAUDE.md)
+
 ### 前置要求
 
-- **Node.js** >= 18.0.0（推薦使用 24.x LTS）
-- **pnpm** >= 9.0.0
-- **OpenAI API Key**（或兼容的 API，如 Google Gemini）
+- **WSL 2** (Ubuntu 20.04+ 推薦)
+- **Node.js** >= 18.0.0 (推薦使用 24.x LTS)
+- **npm** 或 **pnpm** >= 9.0.0
+- **PostgreSQL** >= 14 (用於上下文存儲系統)
+- **Docker** (可選,用於運行 PostgreSQL)
+- **OpenAI API Key** (或兼容的 API，如 Google Gemini)
 - **Jira 實例訪問權限**
 
-### 本地安裝
+### 快速設置 (推薦)
 
 ```bash
+# 1. 在 Windows 中打開 WSL
+wsl
+
+# 2. 導航到項目目錄
+cd /mnt/c/Users/ALVIS.MC.TSAO/worKspace/JiraCSServer
+
+# 3. 運行自動設置腳本
+chmod +x setup-wsl.sh
+./setup-wsl.sh
+```
+
+### 手動安裝
+
+```bash
+# ===在 WSL 中執行以下所有命令===
+
 # 1. 克隆倉庫
 git clone https://github.com/your-org/JiraCSServer.git
 cd JiraCSServer
 
 # 2. 安裝依賴
+npm install
+# 或使用 pnpm
 pnpm install
 
 # 3. 配置環境變數
 cp .env.example .env
-# 編輯 .env 文件，填入實際配置
-nano .env
+# 使用 WSL 編輯器編輯
+nano .env  # 或 vim .env
+
+# 4. 設置 PostgreSQL (使用 Docker)
+docker run --name jira-cs-postgres \
+  -e POSTGRES_PASSWORD=your_password \
+  -e POSTGRES_DB=jira_cs \
+  -p 5432:5432 \
+  -d postgres:16
+
+# 5. 初始化資料庫
+npm run db:init
+
+# 6. 驗證設置
+npm run db:stats
 ```
 
 ### 環境變數配置
@@ -1057,12 +1125,76 @@ ISC
 - 添加測試用例
 - 確保所有測試通過
 
+## 🆕 上下文存儲系統
+
+### v2.0 新增功能
+
+JiraCSServer v2.0 引入了基於 PostgreSQL 的智能上下文存儲系統,使用 Project ID 作為索引,實現跨會話的上下文連續性。
+
+### 核心特性
+
+- ✅ **Project ID 索引**: 同一專案共享歷史上下文
+- ✅ **智能壓縮**: 使用 LLM 壓縮對話歷史,保留關鍵信息
+- ✅ **自動觸發**: 當對話 > 5 輪或 tokens > 10000 時自動壓縮
+- ✅ **上下文注入**: 後續追問自動獲得完整歷史上下文
+- ✅ **完整審計**: 詳細記錄所有對話和壓縮操作
+
+### 工作流程
+
+```
+用戶請求 (Project ID: JCSC-1)
+    ↓
+自動加載歷史上下文 (壓縮摘要 + 最近 3 輪對話)
+    ↓
+注入到 Agent Prompt
+    ↓
+Agent 處理 (含完整上下文)
+    ↓
+保存本次互動到 PostgreSQL
+    ↓
+[如需要] 自動觸發 LLM 壓縮
+```
+
+### 快速使用
+
+```bash
+# 在 WSL 中執行
+
+# 1. 初始化資料庫
+npm run db:init
+
+# 2. 查看統計
+npm run db:stats
+
+# 3. 運行維護
+npm run db:maintain
+```
+
+### 資料表結構
+
+- **project_contexts**: 專案級上下文 (壓縮摘要 + 完整歷史)
+- **conversation_turns**: 詳細對話記錄 (問題、分類、回答、質量評分)
+- **compression_history**: 壓縮操作審計
+
+### 詳細文檔
+
+- **[CONTEXT_STORAGE.md](./CONTEXT_STORAGE.md)** - 完整技術文檔
+- **[QUICKSTART_CONTEXT.md](./QUICKSTART_CONTEXT.md)** - 快速開始指南
+
 ## 相關文檔
 
+### 核心文檔
+
+- **[CLAUDE.md](./CLAUDE.md)** - 🔴 **必讀** 項目規範和 WSL 開發要求
 - **[API.md](./API.md)** - REST API 詳細說明和使用範例
 - **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Docker 和生產環境部署指南
 - **[TEST_GUIDE.md](./TEST_GUIDE.md)** - 測試方法、工具和最佳實踐
 - **[IMPLEMENTATION_SUMMARY.md](./IMPLEMENTATION_SUMMARY.md)** - 項目實施細節和技術決策
+
+### 上下文系統文檔
+
+- **[CONTEXT_STORAGE.md](./CONTEXT_STORAGE.md)** - 上下文存儲系統完整技術文檔
+- **[QUICKSTART_CONTEXT.md](./QUICKSTART_CONTEXT.md)** - 上下文系統快速開始指南
 
 ## 版本歷史
 

@@ -74,6 +74,23 @@ export const WorkflowStateAnnotation = Annotation.Root({
     reducer: (existing, update) => update !== undefined ? update : existing,
     default: () => true,
   }),
+
+  // Historical context from database
+  historical_context: Annotation<{
+    hasHistory: boolean;
+    contextSummary: string;
+    formattedContext: string;
+  }>({
+    reducer: (existing, update) => update || existing,
+    default: () => ({
+      hasHistory: false,
+      contextSummary: '',
+      formattedContext: '',
+    }),
+  }),
+
+  // Project ID for context management
+  project_id: Annotation<string>(),
 });
 
 // Utility functions for working with workflow state

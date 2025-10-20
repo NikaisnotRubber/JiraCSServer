@@ -1,8 +1,102 @@
 # Prompt Engineering System - 使用指南
 
+## 目錄
+
+- [概述](#概述)
+  - [快速理解 - 核心概念圖](#快速理解---核心概念圖)
+  - [系統優勢一覽](#系統優勢一覽)
+- [架構設計](#架構設計)
+  - [核心原則](#核心原則)
+  - [整體架構圖](#整體架構圖)
+  - [新舊架構對比](#新舊架構對比)
+  - [目錄結構](#目錄結構)
+- [使用方法](#使用方法)
+  - [1. 基本使用 - 在 Agent 中建構 Prompt](#1-基本使用---在-agent-中建構-prompt)
+  - [2. 自訂 Prompt Template](#2-自訂-prompt-template)
+  - [3. 擴展領域知識庫](#3-擴展領域知識庫)
+  - [4. Context Assembly 選項](#4-context-assembly-選項)
+- [核心特性](#核心特性)
+  - [1. 自動關鍵詞提取與相關上下文注入](#1-自動關鍵詞提取與相關上下文注入)
+  - [2. State-Aware Prompting (狀態感知)](#2-state-aware-prompting-狀態感知)
+  - [3. Multi-Hop Reasoning Support (多跳推理)](#3-multi-hop-reasoning-support-多跳推理)
+  - [4. Token Budget Management](#4-token-budget-management)
+- [與 LangGraph 工作流整合](#與-langgraph-工作流整合)
+  - [完整工作流程圖](#完整工作流程圖)
+  - [Context Assembly 在不同節點的配置](#context-assembly-在不同節點的配置)
+  - [在工作流節點中使用](#在工作流節點中使用)
+  - [Retry 機制整合](#retry-機制整合)
+- [優勢對比](#優勢對比)
+  - [相比 RAG 的優勢](#相比-rag-的優勢)
+  - [RAG vs Prompt Engineering 流程對比](#rag-vs-prompt-engineering-流程對比)
+  - [多跳推理範例](#多跳推理範例)
+- [最佳實踐](#最佳實踐)
+- [測試與驗證](#測試與驗證)
+- [遷移指南](#遷移指南)
+- [故障排除](#故障排除)
+- [未來擴展](#未來擴展)
+- [總結](#總結)
+
+---
+
 ## 概述
 
 本專案實現了一個先進的 Prompt Engineering 系統,通過豐富的上下文工程替代 RAG,實現更靈活的多跳推理能力,並與 LangGraph 工作流深度整合。
+
+### 快速理解 - 核心概念圖
+
+```mermaid
+mindmap
+  root((Prompt Engineering<br/>System))
+    分離關注點
+      Agent 專注業務邏輯
+      Template 定義結構
+      Context 提供知識
+      Builder 組裝 Prompt
+    上下文組合
+      關鍵詞提取
+      智能過濾
+      Token 預算管理
+      多跳推理支持
+    狀態感知
+      Workflow 整合
+      Retry 機制
+      Quality Feedback
+      動態調整
+    維護性
+      Git 版本控制
+      集中式知識庫
+      確定性輸出
+      易於測試
+```
+
+### 系統優勢一覽
+
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': { 'primaryColor':'#4A90E2','primaryTextColor':'#fff','primaryBorderColor':'#357ABD','lineColor':'#F39C12','secondaryColor':'#50C878','tertiaryColor':'#E27D60'}}}%%
+graph LR
+    A[Prompt Engineering<br/>System] --> B[零檢索延遲]
+    A --> C[完整推理鏈]
+    A --> D[確定性輸出]
+    A --> E[易於維護]
+
+    B --> B1[無向量資料庫]
+    B --> B2[無嵌入模型]
+
+    C --> C1[豐富上下文]
+    C --> C2[診斷程序]
+
+    D --> D1[Git 版本控制]
+    D --> D2[可重現結果]
+
+    E --> E1[集中式知識]
+    E --> E2[模組化設計]
+
+    style A fill:#4A90E2,color:#fff
+    style B fill:#2ECC71,color:#fff
+    style C fill:#E27D60,color:#fff
+    style D fill:#9B59B6,color:#fff
+    style E fill:#F39C12,color:#fff
+```
 
 ## 架構設計
 
@@ -12,6 +106,93 @@
 2. **上下文組合** - 通過智能上下文組裝替代 RAG 檢索
 3. **狀態感知** - Prompt 能夠根據工作流狀態動態調整
 4. **可維護性** - 領域知識集中管理,支持版本控制
+
+### 整體架構圖
+
+```mermaid
+graph TB
+    subgraph "Agent Layer"
+        A[Agent<br/>分類/處理/評估]
+    end
+
+    subgraph "Prompt Engineering System"
+        B[PromptBuilder<br/>核心建構器]
+        C[ContextAssembler<br/>上下文組裝器]
+        D[StateContextExtractor<br/>狀態提取器]
+
+        subgraph "Templates Layer"
+            E1[ClassifierTemplate]
+            E2[ComplexHandlerTemplate]
+            E3[LoginHandlerTemplate]
+            E4[QualityEvaluatorTemplate]
+        end
+
+        subgraph "Contexts Layer"
+            F1[JiraKnowledgeBase<br/>功能/整合知識]
+            F2[TechnicalProcedures<br/>診斷步驟/腳本]
+            F3[ResponsePatterns<br/>回應模式範例]
+            F4[TroubleshootingGuides<br/>故障排除指南]
+        end
+    end
+
+    subgraph "LangGraph Workflow"
+        G[WorkflowState<br/>狀態管理]
+    end
+
+    subgraph "LLM"
+        H[OpenAI/Claude<br/>語言模型]
+    end
+
+    A -->|使用| B
+    B -->|選擇模板| E1 & E2 & E3 & E4
+    B -->|組裝上下文| C
+    B -->|提取狀態| D
+    C -->|載入知識| F1 & F2 & F3 & F4
+    D -->|讀取| G
+    G -->|提供狀態| A
+    B -->|生成 Prompt| H
+    H -->|回應| A
+    A -->|更新狀態| G
+
+    style B fill:#4A90E2,color:#fff
+    style C fill:#50C878,color:#fff
+    style D fill:#50C878,color:#fff
+    style A fill:#E27D60,color:#fff
+```
+
+### 新舊架構對比
+
+```mermaid
+graph LR
+    subgraph "舊架構 (V1)"
+        A1[Agent] -->|硬編碼 Prompt| L1[LLM]
+        A1 -.->|混合業務邏輯| A1
+    end
+
+    subgraph "新架構 (V2)"
+        A2[Agent] -->|使用| PB[PromptBuilder]
+        PB -->|模板| T[Templates]
+        PB -->|知識| K[Contexts]
+        PB -->|狀態| S[State]
+        PB -->|建構| L2[LLM]
+    end
+
+    style A1 fill:#E74C3C,color:#fff
+    style A2 fill:#2ECC71,color:#fff
+    style PB fill:#4A90E2,color:#fff
+```
+
+**V1 問題**:
+- Prompt 與業務邏輯耦合
+- 知識分散在各個 Agent
+- 難以維護和測試
+- 無法重用上下文
+
+**V2 優勢**:
+- 清晰的關注點分離
+- 集中式知識管理
+- 可測試、可重用
+- 支持版本控制
 
 ### 目錄結構
 
@@ -112,6 +293,82 @@ export class MyCustomTemplate extends BasePromptTemplate {
 
 ### 3. 擴展領域知識庫
 
+#### 知識庫組織結構
+
+```mermaid
+graph TB
+    subgraph "Knowledge Base Architecture"
+        KB[Knowledge Contexts]
+
+        KB --> JK[Jira Knowledge Base]
+        KB --> TP[Technical Procedures]
+        KB --> RP[Response Patterns]
+        KB --> TG[Troubleshooting Guides]
+
+        JK --> JK1[Features<br/>功能知識]
+        JK --> JK2[Integrations<br/>整合知識]
+        JK --> JK3[Best Practices<br/>最佳實踐]
+
+        JK1 --> F1[Category]
+        JK1 --> F2[Description]
+        JK1 --> F3[Common Issues]
+        JK1 --> F4[Keywords<br/>中英文]
+
+        TP --> TP1[Diagnostic Steps<br/>診斷步驟]
+        TP --> TP2[Code Examples<br/>程式碼範例]
+        TP --> TP3[Script Templates<br/>腳本模板]
+
+        RP --> RP1[Success Patterns<br/>成功範例]
+        RP --> RP2[Error Patterns<br/>錯誤處理]
+        RP --> RP3[Tone & Style<br/>語氣風格]
+
+        TG --> TG1[Symptom → Solution<br/>症狀診斷]
+        TG --> TG2[Common Pitfalls<br/>常見陷阱]
+        TG --> TG3[Prevention Tips<br/>預防建議]
+    end
+
+    style KB fill:#4A90E2,color:#fff
+    style JK fill:#E27D60,color:#fff
+    style TP fill:#50C878,color:#fff
+    style RP fill:#F39C12,color:#fff
+    style TG fill:#9B59B6,color:#fff
+```
+
+#### 關鍵詞匹配機制
+
+```mermaid
+flowchart LR
+    Input[User Input<br/>Summary + Comment] --> KE[Keyword Extractor]
+
+    KE --> K1[提取技術關鍵詞]
+    KE --> K2[提取產品名稱]
+    KE --> K3[提取錯誤類型]
+
+    K1 --> Keywords[Extracted Keywords<br/>script, groovy, NPE]
+
+    Keywords --> Match[Match Against<br/>Knowledge Base]
+
+    Match --> KB1[(Jira Features)]
+    Match --> KB2[(Integrations)]
+    Match --> KB3[(Best Practices)]
+
+    KB1 --> Filter1{Keywords<br/>Match?}
+    KB2 --> Filter2{Keywords<br/>Match?}
+    KB3 --> Filter3{Keywords<br/>Match?}
+
+    Filter1 -->|是| Rel1[Script Runner 知識]
+    Filter2 -->|是| Rel2[Groovy 整合知識]
+    Filter3 -->|是| Rel3[錯誤處理最佳實踐]
+
+    Rel1 --> Final[Assembled Context]
+    Rel2 --> Final
+    Rel3 --> Final
+
+    style KE fill:#3498DB,color:#fff
+    style Match fill:#E67E22,color:#fff
+    style Final fill:#2ECC71,color:#fff
+```
+
 在 `src/prompts/contexts/` 中新增或修改知識庫:
 
 ```typescript
@@ -190,6 +447,33 @@ if (state.retry_count > 0) {
 
 ### 3. Multi-Hop Reasoning Support (多跳推理)
 
+```mermaid
+sequenceDiagram
+    participant U as User Query
+    participant A as Agent
+    participant PB as PromptBuilder
+    participant CA as ContextAssembler
+    participant KB as KnowledgeBase
+    participant LLM as Language Model
+
+    U->>A: "Script Runner failing with NPE"
+    A->>PB: build(template, state, input)
+    PB->>CA: extractKeywords(input)
+    CA-->>PB: ['script', 'runner', 'NPE', 'workflow']
+
+    PB->>CA: getRelevantKnowledge(keywords)
+    CA->>KB: filter by keywords
+    KB-->>CA: Script Runner features<br/>Diagnostic procedures<br/>Code examples<br/>Best practices
+    CA-->>PB: Assembled context
+
+    PB->>LLM: System Prompt + User Prompt<br/>(with rich context)
+
+    Note over LLM: Multi-hop reasoning:<br/>1. Identify symptom<br/>2. Find diagnostic steps<br/>3. Locate root cause<br/>4. Provide solution<br/>5. Suggest prevention
+
+    LLM-->>A: Complete solution with<br/>reasoning chain
+    A-->>U: Detailed response
+```
+
 不使用 RAG,而是通過豐富的結構化知識支持多跳推理:
 
 ```typescript
@@ -216,6 +500,42 @@ LLM 可以:
 
 ### 4. Token Budget Management
 
+```mermaid
+flowchart TD
+    Start[Context Assembly 開始] --> Extract[提取關鍵詞]
+    Extract --> Load[載入所有知識庫]
+
+    Load --> Filter{Context Mode?}
+    Filter -->|minimal| Min[僅核心知識]
+    Filter -->|relevant| Rel[關鍵詞過濾]
+    Filter -->|full| Full[完整知識]
+
+    Min --> Assemble[組裝上下文]
+    Rel --> Assemble
+    Full --> Assemble
+
+    Assemble --> Estimate[估算 Token 數]
+    Estimate --> Check{超過預算?}
+
+    Check -->|否| Output[輸出上下文]
+    Check -->|是| Optimize[優化策略]
+
+    Optimize --> O1[1. 減少範例數量]
+    O1 --> O2[2. 縮減故障排除指南]
+    O2 --> O3[3. 簡化技術程序]
+    O3 --> O4[4. 保留最相關知識]
+
+    O4 --> Estimate
+
+    Output --> End[完成]
+
+    style Extract fill:#3498DB,color:#fff
+    style Filter fill:#E67E22,color:#fff
+    style Check fill:#E74C3C,color:#fff
+    style Optimize fill:#9B59B6,color:#fff
+    style Output fill:#2ECC71,color:#fff
+```
+
 ```typescript
 // 自動優化上下文以符合 token 預算
 const optimized = ContextAssembler.optimizeForTokenBudget(
@@ -231,6 +551,74 @@ const optimized = ContextAssembler.optimizeForTokenBudget(
 ```
 
 ## 與 LangGraph 工作流整合
+
+### 完整工作流程圖
+
+```mermaid
+graph TB
+    Start([接收 Jira Issue]) --> Classify[分類節點<br/>ClassifierAgent]
+
+    Classify -->|簡單問題| Simple[簡單處理節點<br/>SimpleHandler]
+    Classify -->|登入問題| Login[登入處理節點<br/>LoginHandler]
+    Classify -->|複雜問題| Complex[複雜處理節點<br/>ComplexHandler]
+
+    Simple --> Quality[品質評估節點<br/>QualityEvaluator]
+    Login --> Quality
+    Complex --> Quality
+
+    Quality -->|通過| Finalize[完成節點]
+    Quality -->|需改進| Retry{Retry Count<br/>< Max?}
+
+    Retry -->|是| RetryComplex[Retry 節點<br/>with feedback]
+    Retry -->|否| Finalize
+
+    RetryComplex -->|重新處理| Complex
+
+    Finalize --> End([返回回應])
+
+    subgraph "每個節點內部"
+        direction TB
+        N1[Agent] --> N2[PromptBuilder]
+        N2 --> N3[Templates + Contexts]
+        N3 --> N4[LLM]
+        N4 --> N5[Update State]
+    end
+
+    style Classify fill:#4A90E2,color:#fff
+    style Complex fill:#E27D60,color:#fff
+    style Quality fill:#F39C12,color:#fff
+    style RetryComplex fill:#9B59B6,color:#fff
+```
+
+### Context Assembly 在不同節點的配置
+
+```mermaid
+graph LR
+    subgraph "Classifier 節點"
+        C1[Minimal Context<br/>快速分類]
+        C1 -->|mode: minimal| C2[無範例<br/>無故障排除]
+    end
+
+    subgraph "Simple Handler 節點"
+        S1[Light Context<br/>基本回應]
+        S1 -->|mode: relevant| S2[少量範例<br/>基本知識]
+    end
+
+    subgraph "Complex Handler 節點"
+        CH1[Rich Context<br/>深度分析]
+        CH1 -->|mode: relevant| CH2[完整範例<br/>診斷程序<br/>故障排除]
+    end
+
+    subgraph "Retry 節點"
+        R1[Rich Context<br/>+ Feedback]
+        R1 -->|mode: relevant| R2[上次回應<br/>改進建議<br/>品質評分]
+    end
+
+    style C1 fill:#3498DB,color:#fff
+    style S1 fill:#2ECC71,color:#fff
+    style CH1 fill:#E74C3C,color:#fff
+    style R1 fill:#9B59B6,color:#fff
+```
 
 ### 在工作流節點中使用
 
@@ -279,6 +667,45 @@ function routeAfterQuality(state: WorkflowState): string {
 | **可測試性** | 難以測試檢索品質 | 確定性,易於測試 |
 | **版本控制** | 需要管理向量資料庫 | Git 版本控制 |
 | **成本** | 需要嵌入模型 + 向量 DB | 僅 LLM 推理成本 |
+
+### RAG vs Prompt Engineering 流程對比
+
+```mermaid
+graph TB
+    subgraph "RAG 方式"
+        direction TB
+        R1[User Query] --> R2[Embedding Model]
+        R2 --> R3[Vector Search<br/>+200-500ms]
+        R3 --> R4{檢索結果<br/>相關?}
+        R4 -->|否| R3
+        R4 -->|是| R5[組裝上下文]
+        R5 --> R6[LLM 推理]
+        R6 --> R7{需要更多<br/>資訊?}
+        R7 -->|是| R3
+        R7 -->|否| R8[Response]
+
+        style R3 fill:#E74C3C,color:#fff
+        style R4 fill:#E67E22,color:#fff
+        style R7 fill:#E67E22,color:#fff
+    end
+
+    subgraph "Prompt Engineering 方式"
+        direction TB
+        P1[User Query] --> P2[關鍵詞提取]
+        P2 --> P3[智能過濾知識<br/>零延遲]
+        P3 --> P4[組裝完整上下文<br/>含推理鏈]
+        P4 --> P5[LLM 推理<br/>一次完成]
+        P5 --> P6[Response]
+
+        style P3 fill:#2ECC71,color:#fff
+        style P4 fill:#27AE60,color:#fff
+        style P5 fill:#16A085,color:#fff
+    end
+```
+
+**關鍵差異**:
+- **RAG**: 可能需要多次檢索,延遲累加,結果不確定
+- **Prompt Engineering**: 一次性提供完整上下文,零檢索延遲,確定性輸出
 
 ### 多跳推理範例
 

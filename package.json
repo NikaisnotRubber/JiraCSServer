@@ -5,9 +5,9 @@
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
-    "dev": "NODE_OPTIONS='--no-deprecation' next dev",
-    "build": "next build",
-    "start": "NODE_OPTIONS='--no-deprecation' next start",
+    "dev": "next dev --turbo",
+    "build": "next build --turbo",
+    "start": "next start",
     "start:prod": "NODE_ENV=production NODE_OPTIONS='--no-deprecation' next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
@@ -16,7 +16,14 @@
     "server:prod": "pnpm build && NODE_OPTIONS='--require ./suppress-dep-warnings.js' node dist/index.js",
     "test": "NODE_OPTIONS='--require ./suppress-dep-warnings.js' ts-node src/tests/index.ts",
     "test:mock": "TEST_MODE=true NODE_OPTIONS='--require ./suppress-dep-warnings.js' ts-node src/tests/index.ts",
-    "test:api": "TEST_MODE=true NODE_OPTIONS='--require ./suppress-dep-warnings.js' ts-node src/tests/api-test.ts"
+    "test:api": "TEST_MODE=true NODE_OPTIONS='--require ./suppress-dep-warnings.js' ts-node src/tests/api-test.ts",
+    "test:langmem": "TEST_MODE=true NODE_OPTIONS='--require ./suppress-dep-warnings.js' ts-node src/tests/test-langmem.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
+    "db:init": "NODE_OPTIONS='--require ./suppress-dep-warnings.js' ts-node src/utils/database-maintenance.ts init",
+    "db:stats": "NODE_OPTIONS='--require ./suppress-dep-warnings.js' ts-node src/utils/database-maintenance.ts stats",
+    "db:maintain": "NODE_OPTIONS='--require ./suppress-dep-warnings.js' ts-node src/utils/database-maintenance.ts maintain"
   },
   "keywords": [
     "jira",
@@ -31,16 +38,19 @@
   "dependencies": {
     "@langchain/core": "^0.3.78",
     "@langchain/langgraph": "^0.4.9",
+    "@langchain/langgraph-checkpoint-postgres": "^0.1.2",
     "@langchain/openai": "^0.6.15",
     "axios": "^1.7.9",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
+    "drizzle-orm": "^0.36.4",
     "express": "^5.0.1",
     "helmet": "^8.0.0",
     "joi": "^18.0.1",
     "morgan": "^1.10.0",
     "next": "^15.1.4",
     "openai": "^6.3.0",
+    "pg": "^8.13.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "uuid": "^13.0.0"
@@ -50,8 +60,10 @@
     "@types/express": "^5.0.0",
     "@types/morgan": "^1.9.9",
     "@types/node": "^24.7.2",
+    "@types/pg": "^8.11.10",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
+    "drizzle-kit": "^0.30.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.2"
   },
@@ -59,7 +71,7 @@
     "node": ">=18.0.0",
     "pnpm": ">=9.0.0"
   },
-  "packageManager": "pnpm@10.16.1",
+  "packageManager": "pnpm@10.18.3+sha512.bbd16e6d7286fd7e01f6b3c0b3c932cda2965c06a908328f74663f10a9aea51f1129eea615134bf992831b009eabe167ecb7008b597f40ff9bc75946aadfb08d",
   "pnpm": {
     "overrides": {
       "node-domexception": "npm:domexception@^4.0.0",

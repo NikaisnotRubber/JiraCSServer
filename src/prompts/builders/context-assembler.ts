@@ -159,6 +159,11 @@ export class ContextAssembler {
   static formatContextForPrompt(context: PromptContext): string {
     const sections: string[] = [];
 
+    // Historical context (NEW - inject first for priority)
+    if (context.workflowState?.historical_context?.hasHistory) {
+      sections.push(context.workflowState.historical_context.formattedContext);
+    }
+
     // Jira knowledge base
     if (context.knowledgeBases?.jira) {
       sections.push(this.formatJiraKnowledge(context.knowledgeBases.jira));
