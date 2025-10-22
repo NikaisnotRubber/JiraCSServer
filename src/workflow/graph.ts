@@ -11,7 +11,7 @@ import { MockLoginHandlerAgent, MockComplexHandlerAgent, MockGeneralHandlerAgent
 import { MockQualityEvaluatorAgent } from '../agents/mock-quality-evaluator';
 import { JiraApiClient } from '../clients/jira-client';
 import { config } from '../utils/config';
-import { createCheckpointer } from './checkpoint.js';
+import { createCheckpointer } from './checkpoint';
 
 // Import V2 agents
 import { ProblemClassificationAgentV2 } from '../agents/classifier-v2';

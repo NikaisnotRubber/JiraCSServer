@@ -1,5 +1,5 @@
 # Claude Code 項目規範 - Jira CS Server
-
+# 注釋等内容請使用繁體中文
 ## 🎯 項目概述
 
 這是一個基於 Next.js + TypeScript 的 Jira 客戶服務 Agent 工作流系統,使用 LangGraph 構建智能客服流程,並整合了 **LangGraph 原生 LangMem** 進行對話上下文自動持久化管理。

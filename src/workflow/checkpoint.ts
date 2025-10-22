@@ -1,5 +1,5 @@
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
-import { getDatabaseConfig } from "../database/config.js";
+import { getDatabaseConfig } from "../database/config";
 
 /**
  * LangGraph Checkpoint Saver Configuration

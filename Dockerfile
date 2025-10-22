@@ -19,37 +19,37 @@ COPY package.json pnpm-lock.yaml* ./
 RUN pnpm install --no-frozen-lockfile
 
 # ============================================
-# 构建阶段
+# 構建階段
 # ============================================
 FROM base AS builder
 
 WORKDIR /app
 
-# 复制依赖
+# 複製依賴
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# 设置环境变量
+# 設置env
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# 构建 Next.js 应用
+# 構建 Next.js
 RUN pnpm build
 
 # ============================================
-# 运行阶段
+# 運行階段
 # ============================================
 FROM base AS runner
 
 WORKDIR /app
 
-# 设置环境变量
+# 設置環境變量
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# 创建非 root 用户
+# 創建非 root user
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
@@ -73,9 +73,9 @@ USER nextjs
 # 暴露端口
 EXPOSE 3000
 
-# 健康检查
+# 健康檢查
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
-# 启动应用
+# 啓動應用
 CMD ["node", "server.js"]

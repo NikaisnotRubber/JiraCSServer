@@ -30,15 +30,18 @@ class LangMemTester {
     summary: string,
     commentContent: string
   ): JiraIssueInput {
+    const now = new Date().toISOString();
     return {
       forms: {
         "Project ID": projectId,
         "Issue Type": "Service Request",
-        "Summary": summary,
         "Reporter": "test.user@example.com",
+        "Created": now,
+        "Updated": now,
+        "Summary": summary,
         "Comment": {
-          Created: new Date().toISOString(),
-          Updated: new Date().toISOString(),
+          Created: now,
+          Updated: now,
           Content: commentContent,
         },
       },

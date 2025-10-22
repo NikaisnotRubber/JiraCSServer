@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # PostgreSQL 資料庫服務 (上下文存儲)
   postgres:
