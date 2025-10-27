@@ -5,8 +5,8 @@
 這是一個基於 Next.js + TypeScript 的 Jira 客戶服務 Agent 工作流系統,使用 LangGraph 構建智能客服流程,並整合了 **LangGraph 原生 LangMem** 進行對話上下文自動持久化管理。
 
 **版本**: 2.0.0
-**主要技術棧**: Next.js 15, TypeScript, LangGraph, OpenAI, PostgreSQL, LangMem
-**核心特性**: 自動化對話上下文管理,零配置記憶體系統
+**主要技術棧**: Next.js 15, TypeScript, LangGraph, OpenAI, PostgreSQL, LangMem, **Streamlit** 🆕
+**核心特性**: 自動化對話上下文管理,零配置記憶體系統,**Web UI 客戶端** 🆕
 
 ## 🖥️ 開發環境要求
 
@@ -77,6 +77,16 @@ JiraCSServer/
 │   │   ├── workflow-logger.ts
 │   │   └── database-maintenance.ts  # 🆕 資料庫維護工具
 │   └── tests/               # 測試文件
+├── streamlit_client/        # 🆕 Streamlit Web UI 客戶端
+│   ├── app.py               # 主程序入口
+│   ├── pyproject.toml       # uv 項目配置
+│   ├── run.sh               # 啟動腳本
+│   ├── config/              # 配置模組
+│   ├── services/            # API 客戶端、會話管理、Checkpoint 服務
+│   ├── components/          # UI 組件(聊天界面、側邊欄)
+│   ├── data/sessions/       # 會話數據存儲
+│   ├── README.md            # 客戶端文檔
+│   └── QUICKSTART.md        # 快速開始指南
 ├── .env                     # 環境變數 (不提交)
 ├── .env.example             # 環境變數示例
 ├── package.json
@@ -88,7 +98,8 @@ JiraCSServer/
 ├── CONTEXT_STORAGE.md       # 🆕 上下文系統完整文檔
 ├── QUICKSTART_CONTEXT.md    # 🆕 快速開始指南
 ├── DOCKER_DEPLOYMENT.md     # 🆕 Docker 部署指南
-└── CLAUDE.md               # 本文件
+├── STREAMLIT_CLIENT.md      # 🆕 Streamlit 客戶端整合文檔
+└── CLAUDE.md                # 本文件
 ```
 
 ## 🚀 開發流程 (在 WSL 中)
@@ -526,6 +537,7 @@ LOG_LEVEL=error  # 僅錯誤
 3. **[CONTEXT_STORAGE.md](./CONTEXT_STORAGE.md)** - 自定義上下文系統文檔 (補充)
 4. **[QUICKSTART_CONTEXT.md](./QUICKSTART_CONTEXT.md)** - 快速開始指南
 5. **[PROMPT_ENGINEERING_GUIDE.md](./PROMPT_ENGINEERING_GUIDE.md)** - Prompt 工程指南
+6. **[STREAMLIT_CLIENT.md](./STREAMLIT_CLIENT.md)** - 🆕 Streamlit 客戶端整合文檔
 
 ### 核心代碼
 
@@ -623,6 +635,11 @@ cd /mnt/c/Users/ALVIS.MC.TSAO/worKspace/JiraCSServer
 # === 日常開發 ===
 npm run dev              # 開發服務器
 npm run test:mock        # 測試
+
+# === Streamlit 客戶端 🆕 ===
+cd streamlit_client
+./run.sh                 # 啟動 Web UI 客戶端
+# 訪問: http://localhost:8501
 
 # === 資料庫 ===
 npm run db:stats         # 統計
