@@ -1,0 +1,24 @@
+{
+  "session_id": "JCSH-1",
+  "title": "登入問題",
+  "status": "open",
+  "created_at": "2025-10-27T15:49:24.707082",
+  "updated_at": "2025-10-27T15:50:37.159532",
+  "messages": [
+    {
+      "role": "user",
+      "content": "我是用戶Alvis.mc.tsao 我無法登錄我的jira系統",
+      "timestamp": "2025-10-27T15:50:03.940389",
+      "metadata": null
+    },
+    {
+      "role": "assistant",
+      "content": "❌ 發生錯誤: HTTP 錯誤: 500 - Workflow processing failed",
+      "timestamp": "2025-10-27T15:50:37.159532",
+      "metadata": {
+        "error": "HTTP 錯誤: 500 - Workflow processing failed"
+      }
+    }
+  ],
+  "metadata": {}
+}
